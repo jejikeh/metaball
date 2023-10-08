@@ -6,12 +6,11 @@
 #include "GameFramework/Pawn.h"
 #include "MetaballPawn.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwipe, FVector, SwipeDirection);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSwipe, FVector, SwipeDirection, float, SwipeVelocity);
 
 UENUM()
 enum class EInputState
 {
-	
 	Pressed UMETA(DisplayName = "Pressed"),
 	Released UMETA(DisplayName = "Released"),
 };
@@ -22,10 +21,27 @@ struct FCurrentInputAction
 	GENERATED_BODY()
 
 public:
-	FCurrentInputAction() : InputState(EInputState::Released), SwipeDirection(FVector::ZeroVector) {};
+	FCurrentInputAction() : InputState(EInputState::Released), SwipeDirection(FVector::ZeroVector),
+	                        SwipeInputStartTime(0.0f), SwipeInputEndTime(0.0f)
+	{
+	};
 
 	EInputState InputState;
 	FVector SwipeDirection;
+	float SwipeInputStartTime;
+	float SwipeInputEndTime;
+
+	FORCEINLINE float GetSwipeTime() const
+	{
+		return SwipeInputEndTime - SwipeInputStartTime;
+	}
+
+	FORCEINLINE float CalculateSwipeVelocityModifier() const
+	{
+		// TODO: Add project settings
+		// return FMath::Eval(SwipeDirection.Length() / GetSwipeTime());
+		return (SwipeDirection.Length() / GetSwipeTime()) * 100.0f;
+	}
 };
 
 UCLASS()
@@ -49,16 +65,21 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class USpringArmComponent* SpringArmComponent;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	UPROPERTY(BlueprintReadWrite, Category = "Components")
 	class UCameraComponent* CameraComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float MinimalSwipeLength;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	float SwipeInteractionTime;
+
 	void SwipeDown(const struct FInputActionValue& Value);
 
-	void SwipeUp(const struct FInputActionValue& Value);
+	void SwipeUp(const FInputActionValue& Value);
 
+	void TouchFinger(const FInputActionValue& Value);
+	
 	UPROPERTY(BlueprintAssignable, Category = "Inventory System | Events")
 	FOnSwipe OnSwipe;
 

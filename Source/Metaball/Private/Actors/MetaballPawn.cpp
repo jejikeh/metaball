@@ -36,19 +36,27 @@ void AMetaballPawn::SwipeDown(const FInputActionValue& Value)
 {
 	SwipeInputAction.InputState = EInputState::Pressed;
 	SwipeInputAction.SwipeDirection = Value.Get<FVector>();
+	SwipeInputAction.SwipeInputStartTime = GetWorld()->GetTimeSeconds();
+	UE_LOG(LogTemp, Warning, TEXT("SwipeDown: %f"), SwipeInputAction.SwipeInputStartTime);
 }
 
 void AMetaballPawn::SwipeUp(const FInputActionValue& Value)
 {
 	SwipeInputAction.InputState = EInputState::Released;
-	SwipeInputAction.SwipeDirection -= Value.Get<FVector>();
+	SwipeInputAction.SwipeInputEndTime = GetWorld()->GetTimeSeconds();
 
-	UE_LOG(LogTemp, Warning, TEXT("SwipeUp: %d"), SwipeInputAction.SwipeDirection.Length());
+	UE_LOG(LogTemp, Warning, TEXT("SwipeUp Time: %f"), SwipeInputAction.GetSwipeTime());
+	UE_LOG(LogTemp, Warning, TEXT("SwipeUp: %s"), *SwipeInputAction.SwipeDirection.ToString());
 	
 	if (SwipeInputAction.SwipeDirection.Length() > MinimalSwipeLength)
 	{
-		OnSwipe.Broadcast(SwipeInputAction.SwipeDirection);
+		OnSwipe.Broadcast(SwipeInputAction.SwipeDirection, SwipeInputAction.CalculateSwipeVelocityModifier());
 	}
+}
+
+void AMetaballPawn::TouchFinger(const FInputActionValue& Value)
+{
+	SwipeInputAction.SwipeDirection += Value.Get<FVector>();
 }
 
 void AMetaballPawn::Tick(float DeltaTime)
@@ -69,6 +77,7 @@ void AMetaballPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	
 	EnhancedInputComponent->BindAction(MetalballPlayerController->SwipeActionDown, ETriggerEvent::Started, this, &AMetaballPawn::SwipeDown);
 	EnhancedInputComponent->BindAction(MetalballPlayerController->SwipeActionUp, ETriggerEvent::Completed, this, &AMetaballPawn::SwipeUp);
+	EnhancedInputComponent->BindAction(MetalballPlayerController->TouchFinger, ETriggerEvent::Triggered, this, &AMetaballPawn::TouchFinger);
 	
 	if (const auto LocalPlayer = MetalballPlayerController->GetLocalPlayer())
 	{
