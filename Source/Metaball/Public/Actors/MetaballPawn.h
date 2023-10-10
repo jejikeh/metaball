@@ -6,7 +6,8 @@
 #include "GameFramework/Pawn.h"
 #include "MetaballPawn.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSwipe, FVector, SwipeDirection, float, SwipeVelocity);
+class AMetaballChild;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwipe, const FVector&, SwipeDirection);
 
 UENUM()
 enum class EInputState
@@ -56,32 +57,46 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(BlueprintAssignable, Category = "Inventory System | Events")
+	FOnSwipe OnSwipe;
+
 protected:
 	virtual void BeginPlay() override;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	class UStaticMeshComponent* MeshComponent;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class USphereComponent* SphereComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class USpringArmComponent* SpringArmComponent;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UCameraComponent* CameraComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float MinimalSwipeLength;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	float SwipeInteractionTime;
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+	FVector JumpDefaultVelocity;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+	FVector MaxVelocity;
 
 	void SwipeDown(const struct FInputActionValue& Value);
 
 	void SwipeUp(const FInputActionValue& Value);
 
 	void TouchFinger(const FInputActionValue& Value);
-	
-	UPROPERTY(BlueprintAssignable, Category = "Inventory System | Events")
-	FOnSwipe OnSwipe;
+
+	void SpawnNewChild();
 
 	FCurrentInputAction SwipeInputAction;
+
+	UFUNCTION()
+	void HandleSwipeMovement(const FVector& SwipeDirection);
+
+private:
+	void ClampVector(FVector* Vector);
 };

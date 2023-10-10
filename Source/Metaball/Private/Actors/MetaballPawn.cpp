@@ -7,6 +7,7 @@
 #include "Components/SphereComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Actors/MetaballChild.h"
 #include "Actors/MetabalPlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 
@@ -15,8 +16,11 @@ AMetaballPawn::AMetaballPawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	SetRootComponent(MeshComponent);
+
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-	SetRootComponent(SphereComponent);
+	SphereComponent->SetupAttachment(MeshComponent);
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(SphereComponent);
@@ -29,13 +33,12 @@ AMetaballPawn::AMetaballPawn()
 void AMetaballPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AMetaballPawn::SwipeDown(const FInputActionValue& Value)
 {
 	SwipeInputAction.InputState = EInputState::Pressed;
-	SwipeInputAction.SwipeDirection = Value.Get<FVector>();
+	SwipeInputAction.SwipeDirection = FVector::Zero();
 	SwipeInputAction.SwipeInputStartTime = GetWorld()->GetTimeSeconds();
 	UE_LOG(LogTemp, Warning, TEXT("SwipeDown: %f"), SwipeInputAction.SwipeInputStartTime);
 }
@@ -50,7 +53,12 @@ void AMetaballPawn::SwipeUp(const FInputActionValue& Value)
 	
 	if (SwipeInputAction.SwipeDirection.Length() > MinimalSwipeLength)
 	{
-		OnSwipe.Broadcast(SwipeInputAction.SwipeDirection, SwipeInputAction.CalculateSwipeVelocityModifier());
+		FVector SwipeDirectionVec = (FVector{SwipeInputAction.SwipeDirection.Y, SwipeInputAction.SwipeDirection.X, 0} * SwipeInputAction.CalculateSwipeVelocityModifier()) + JumpDefaultVelocity;
+		ClampVector(&SwipeDirectionVec);
+
+		OnSwipe.Broadcast(SwipeDirectionVec);
+
+		HandleSwipeMovement(SwipeDirectionVec);
 	}
 }
 
@@ -62,6 +70,18 @@ void AMetaballPawn::TouchFinger(const FInputActionValue& Value)
 void AMetaballPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void AMetaballPawn::HandleSwipeMovement(const FVector& SwipeDirection)
+{
+	MeshComponent->AddImpulse(SwipeDirection);
+}
+
+void AMetaballPawn::ClampVector(FVector* Vector)
+{
+	Vector->X = FMath::Clamp(Vector->X, -MaxVelocity.X, MaxVelocity.X);
+	Vector->Y = FMath::Clamp(Vector->Y, -MaxVelocity.Y, MaxVelocity.Y);
+	Vector->Z = FMath::Clamp(Vector->Z, -MaxVelocity.Z, MaxVelocity.Z);
 }
 
 void AMetaballPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
