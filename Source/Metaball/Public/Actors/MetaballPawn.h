@@ -59,7 +59,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory System | Events")
 	FOnSwipe OnSwipe;
-
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -75,6 +75,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UCameraComponent* CameraComponent;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	class UMetaballPawnMovementComponent* MetaballPawnMovementComponent;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float MinimalSwipeLength;
 
@@ -89,9 +92,7 @@ protected:
 	void SwipeUp(const FInputActionValue& Value);
 
 	void TouchFinger(const FInputActionValue& Value);
-
-	void SpawnNewChild();
-
+	
 	FCurrentInputAction SwipeInputAction;
 
 	UFUNCTION()

@@ -9,6 +9,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "Actors/MetaballChild.h"
 #include "Actors/MetabalPlayerController.h"
+#include "Components/MetaballPawnMovementComponent.h"
+#include "Components/MetaballSplashSeparateComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
 // Sets default values
@@ -19,6 +22,8 @@ AMetaballPawn::AMetaballPawn()
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	SetRootComponent(MeshComponent);
 
+	MetaballPawnMovementComponent = CreateDefaultSubobject<UMetaballPawnMovementComponent>(TEXT("MetaballPawnMovementComponent"));
+	
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 	SphereComponent->SetupAttachment(MeshComponent);
 
@@ -51,7 +56,7 @@ void AMetaballPawn::SwipeUp(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Warning, TEXT("SwipeUp Time: %f"), SwipeInputAction.GetSwipeTime());
 	UE_LOG(LogTemp, Warning, TEXT("SwipeUp: %s"), *SwipeInputAction.SwipeDirection.ToString());
 	
-	if (SwipeInputAction.SwipeDirection.Length() > MinimalSwipeLength)
+	if (SwipeInputAction.SwipeDirection.Length() > MinimalSwipeLength && MetaballPawnMovementComponent->IsFalling())
 	{
 		FVector SwipeDirectionVec = (FVector{SwipeInputAction.SwipeDirection.Y, SwipeInputAction.SwipeDirection.X, 0} * SwipeInputAction.CalculateSwipeVelocityModifier()) + JumpDefaultVelocity;
 		ClampVector(&SwipeDirectionVec);

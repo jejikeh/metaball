@@ -3,11 +3,10 @@
 
 #include "Components/MetaballSplashSeparateComponent.h"
 
-#include "ActorFactories/ActorFactorySkeletalMesh.h"
+#include "MetaballDeveloperSettings.h"
 #include "Actors/MetaballChild.h"
 #include "Actors/MetaballPawn.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetArrayLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 
 DEFINE_LOG_CATEGORY(LogMetaballSplashSeparateComponent);
@@ -26,14 +25,41 @@ void UMetaballSplashSeparateComponent::BeginPlay()
 	if (OwnerStaticMeshComponent)
 	{
 		OwnerStaticMeshComponent->OnComponentHit.AddDynamic(this, &UMetaballSplashSeparateComponent::OnComponentHit);
+
+		const UMetaballDeveloperSettings* MetaballDeveloperSettings = GetDefault<UMetaballDeveloperSettings>();
+		MinimalChildThreshold = MetaballDeveloperSettings->MinChildCount;
 		return;
 	}
 	
 	UE_LOG(LogMetaballSplashSeparateComponent, Error, TEXT("OwnerStaticMeshComponent is null! Try set StaticMeshComponent in Actor!"));
 }
 
+void UMetaballSplashSeparateComponent::HandleChildDeath(AActor* DestroyedActor)
+{
+	ChildCount--;
+	OnChildChanged.Broadcast(ChildCount);
+
+	if (ChildCount < MinimalChildThreshold)
+	{
+		OnMetaballChildBelowThreshold.Broadcast();
+	}
+}
+
+void UMetaballSplashSeparateComponent::HealSeparateCount()
+{
+	if (SeparateCount >= MaximumSeparateCount)
+	{
+		UE_LOG(LogMetaballSplashSeparateComponent, Error, TEXT("Maximum Separate Count reached!"));
+		GetWorld()->GetTimerManager().ClearTimer(HealSeparateCountTimer);
+		return;
+	}
+
+	SeparateCount++;
+	UE_LOG(LogMetaballSplashSeparateComponent, Log, TEXT("Separate Count: %d"), SeparateCount);
+}
+
 void UMetaballSplashSeparateComponent::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+                                                      UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	const auto *MetaballPawn = Cast<AMetaballPawn>(OtherActor);
 	const auto *MetaballChild = Cast<AMetaballChild>(OtherActor);
@@ -51,17 +77,40 @@ void UMetaballSplashSeparateComponent::OnComponentHit(UPrimitiveComponent* HitCo
 			InitialSplashScale,
 			Hit.Location,
 			UKismetMathLibrary::MakeRotFromX(Hit.Normal),
-			10.0f);
-
-		if (MetaballVelocity.Length() > MinimalSeparateVelocity)
+			3.0f);
+		
+		if (MetaballVelocity.Length() > MinimalSeparateVelocity && bIsCapableOfSeparating && SeparateCount > 0 || (bIsInMainMetaball && !bIsInitializeChild))
 		{
 			auto MetalballTransform = GetOwner()->GetActorTransform();
 			MetalballTransform.SetScale3D(MetalballTransform.GetScale3D() / 2);
-			GetWorld()->SpawnActor<AMetaballChild>(ChildMetaballClass, MetalballTransform);
+
+			auto ChildSpawn = FMath::RandRange(0, MaximumSeparateCount - SeparateCount);
+			if (!bIsInitializeChild && bIsInMainMetaball)
+			{
+				const UMetaballDeveloperSettings* MetaballDeveloperSettings = GetDefault<UMetaballDeveloperSettings>();
+				ChildSpawn = MetaballDeveloperSettings->MinChildCount;
+				bIsInitializeChild = true;
+			}
+			
+			for (int i = 0; i < ChildSpawn; i++)
+			{
+				const auto Child = GetWorld()->SpawnActor<AMetaballChild>(ChildMetaballClass, MetalballTransform);
+				Child->OnDestroyed.AddDynamic(this, &UMetaballSplashSeparateComponent::HandleChildDeath);
+				
+				SeparateCount = FMath::Clamp(SeparateCount - 1, 0, MaximumSeparateCount);
+				ChildCount++;
+
+				OnChildChanged.Broadcast(ChildCount);
+			}
 		}
 	}
 	else
 	{
+		if (bIsInSplash && SeparateCount < MaximumSeparateCount)
+		{
+			GetWorld()->GetTimerManager().SetTimer(HealSeparateCountTimer, this, &UMetaballSplashSeparateComponent::HealSeparateCount, 1.0f, true);
+		}
+		
 		bIsInSplash = false;
 	}
 }
@@ -79,5 +128,15 @@ UMaterialInterface* UMetaballSplashSeparateComponent::GetRandomSplashMaterial() 
 void UMetaballSplashSeparateComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+}
+
+int32 UMetaballSplashSeparateComponent::GetSeparateCount() const
+{
+	return SeparateCount;
+}
+
+int32 UMetaballSplashSeparateComponent::GetCurrentChildCount() const
+{
+	return ChildCount;
 }
 

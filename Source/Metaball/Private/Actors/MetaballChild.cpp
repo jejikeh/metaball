@@ -4,6 +4,7 @@
 #include "Actors/MetaballChild.h"
 
 #include "Actors/MetaballPawn.h"
+#include "Components/MetaballHealthComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -11,7 +12,6 @@
 // Sets default values
 AMetaballChild::AMetaballChild()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
@@ -19,9 +19,10 @@ AMetaballChild::AMetaballChild()
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 	SphereComponent->SetupAttachment(MeshComponent);
+
+	HealthComponent = CreateDefaultSubobject<UMetaballHealthComponent>(TEXT("HealthComponent"));
 }
 
-// Called when the game starts or when spawned
 void AMetaballChild::BeginPlay()
 {
 	Super::BeginPlay();
@@ -68,7 +69,7 @@ void AMetaballChild::Tick(float DeltaTime)
 
 	if (MeshComponent)
 	{
-		MeshComponent->AddForce(CalculateAttachForceVector());
+		MeshComponent->AddForce(CalculateAttachForceVector() * InitialForce);
 		const auto DistanceToMainMetaball = MainMetaball->GetActorLocation() - GetActorLocation();
 		
 		if (DistanceToMainMetaball.Length() > DieDistance && !bIsFarAwayFromMainMetaball)

@@ -36,6 +36,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	float AttachmentForce;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+	FVector InitialForce;
+
 	UPROPERTY(EditDefaultsOnly)
 	float MinimalSize;
 
@@ -47,6 +50,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	float SizeDecreaseTime;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UMetaballHealthComponent *HealthComponent;
 
 private:
 	UPROPERTY()
