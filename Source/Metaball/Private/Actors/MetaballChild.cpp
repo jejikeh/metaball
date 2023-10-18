@@ -94,5 +94,5 @@ void AMetaballChild::Tick(float DeltaTime)
 
 void AMetaballChild::HandleSwipeMovement(const FVector& SwipeDirection)
 {
-	MeshComponent->AddImpulse(SwipeDirection);
+	MeshComponent->AddForce(SwipeDirection);
 }

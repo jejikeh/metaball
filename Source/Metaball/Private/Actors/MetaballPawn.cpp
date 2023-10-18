@@ -40,25 +40,20 @@ void AMetaballPawn::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AMetaballPawn::SwipeDown(const FInputActionValue& Value)
+void AMetaballPawn::TapJumpDown(const FInputActionValue& Value)
 {
-	SwipeInputAction.InputState = EInputState::Pressed;
-	SwipeInputAction.SwipeDirection = FVector::Zero();
-	SwipeInputAction.SwipeInputStartTime = GetWorld()->GetTimeSeconds();
-	UE_LOG(LogTemp, Warning, TEXT("SwipeDown: %f"), SwipeInputAction.SwipeInputStartTime);
+	
 }
 
-void AMetaballPawn::SwipeUp(const FInputActionValue& Value)
+void AMetaballPawn::TapJumpUp(const FInputActionValue& Value)
 {
 	SwipeInputAction.InputState = EInputState::Released;
-	SwipeInputAction.SwipeInputEndTime = GetWorld()->GetTimeSeconds();
 
-	UE_LOG(LogTemp, Warning, TEXT("SwipeUp Time: %f"), SwipeInputAction.GetSwipeTime());
 	UE_LOG(LogTemp, Warning, TEXT("SwipeUp: %s"), *SwipeInputAction.SwipeDirection.ToString());
 	
 	if (SwipeInputAction.SwipeDirection.Length() > MinimalSwipeLength && MetaballPawnMovementComponent->IsFalling())
 	{
-		FVector SwipeDirectionVec = (FVector{SwipeInputAction.SwipeDirection.Y, SwipeInputAction.SwipeDirection.X, 0} * SwipeInputAction.CalculateSwipeVelocityModifier()) + JumpDefaultVelocity;
+		FVector SwipeDirectionVec = (FVector{SwipeInputAction.SwipeDirection.Y, SwipeInputAction.SwipeDirection.X, 0}) + JumpDefaultVelocity;
 		ClampVector(&SwipeDirectionVec);
 
 		OnSwipe.Broadcast(SwipeDirectionVec);
@@ -67,19 +62,53 @@ void AMetaballPawn::SwipeUp(const FInputActionValue& Value)
 	}
 }
 
-void AMetaballPawn::TouchFinger(const FInputActionValue& Value)
+void AMetaballPawn::TouchFingerX(const FInputActionValue& Value)
 {
-	SwipeInputAction.SwipeDirection += Value.Get<FVector>();
+	SwipeInputAction.SwipeDirection.X = Value.Get<float>();
+	SwipeInputAction.InputState = EInputState::Released;
+
+	UE_LOG(LogTemp, Warning, TEXT("SwipeUp: %s"), *SwipeInputAction.SwipeDirection.ToString());
+	
+	if (MetaballPawnMovementComponent->IsFalling())
+	{
+		FVector SwipeDirectionVec = (FVector{0, SwipeInputAction.SwipeDirection.X * JumpDefaultVelocity.X, JumpDefaultVelocity.Z});
+		ClampVector(&SwipeDirectionVec);
+		OnSwipe.Broadcast(SwipeDirectionVec);
+		HandleSwipeMovement(SwipeDirectionVec);
+	}
+}
+
+void AMetaballPawn::TouchFingerY(const FInputActionValue& Value)
+{
+	SwipeInputAction.SwipeDirection.Y = Value.Get<float>();
+	SwipeInputAction.InputState = EInputState::Released;
+
+	UE_LOG(LogTemp, Warning, TEXT("SwipeUp: %s"), *SwipeInputAction.SwipeDirection.ToString());
+	
+	if (MetaballPawnMovementComponent->IsFalling())
+	{
+		FVector SwipeDirectionVec = (FVector{SwipeInputAction.SwipeDirection.Y * JumpDefaultVelocity.Y, 0, JumpDefaultVelocity.Y});
+		ClampVector(&SwipeDirectionVec);
+		OnSwipe.Broadcast(SwipeDirectionVec);
+		HandleSwipeMovement(SwipeDirectionVec);
+	}
+}
+
+void AMetaballPawn::TouchFingerUp(const FInputActionValue& Value)
+{
+	SwipeInputAction.InputState = EInputState::Pressed;
+	SwipeInputAction.SwipeDirection = FVector::Zero();
 }
 
 void AMetaballPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	UE_LOG(LogTemp, Warning, TEXT("Swipe: %s"), *SwipeInputAction.SwipeDirection.ToString());
 }
 
 void AMetaballPawn::HandleSwipeMovement(const FVector& SwipeDirection)
 {
-	MeshComponent->AddImpulse(SwipeDirection);
+	MeshComponent->AddForce(SwipeDirection);
 }
 
 void AMetaballPawn::ClampVector(FVector* Vector)
@@ -100,9 +129,11 @@ void AMetaballPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	MetalballPlayerController->bEnableClickEvents = true;
 	MetalballPlayerController->bEnableTouchEvents = true;
 	
-	EnhancedInputComponent->BindAction(MetalballPlayerController->SwipeActionDown, ETriggerEvent::Started, this, &AMetaballPawn::SwipeDown);
-	EnhancedInputComponent->BindAction(MetalballPlayerController->SwipeActionUp, ETriggerEvent::Completed, this, &AMetaballPawn::SwipeUp);
-	EnhancedInputComponent->BindAction(MetalballPlayerController->TouchFinger, ETriggerEvent::Triggered, this, &AMetaballPawn::TouchFinger);
+	EnhancedInputComponent->BindAction(MetalballPlayerController->TapJumpActionDown, ETriggerEvent::Started, this, &AMetaballPawn::TapJumpDown);
+	EnhancedInputComponent->BindAction(MetalballPlayerController->TapJumpActionUp, ETriggerEvent::Started, this, &AMetaballPawn::TapJumpUp);
+	EnhancedInputComponent->BindAction(MetalballPlayerController->TouchFingerX, ETriggerEvent::Triggered, this, &AMetaballPawn::TouchFingerX);
+	EnhancedInputComponent->BindAction(MetalballPlayerController->TouchFingerY, ETriggerEvent::Triggered, this, &AMetaballPawn::TouchFingerY);
+	EnhancedInputComponent->BindAction(MetalballPlayerController->TouchFingerUp, ETriggerEvent::Completed, this, &AMetaballPawn::TouchFingerUp);
 	
 	if (const auto LocalPlayer = MetalballPlayerController->GetLocalPlayer())
 	{

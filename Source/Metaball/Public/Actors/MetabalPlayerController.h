@@ -21,11 +21,17 @@ public:
 	class UInputMappingContext* InputMappingContext;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
-	class UInputAction* SwipeActionDown;
+	class UInputAction* TapJumpActionDown;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
-	UInputAction* SwipeActionUp;
+	class UInputAction* TapJumpActionUp;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
-	UInputAction* TouchFinger;
+	UInputAction* TouchFingerX;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	UInputAction* TouchFingerY;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	UInputAction* TouchFingerUp;
 };

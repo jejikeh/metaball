@@ -22,27 +22,12 @@ struct FCurrentInputAction
 	GENERATED_BODY()
 
 public:
-	FCurrentInputAction() : InputState(EInputState::Released), SwipeDirection(FVector::ZeroVector),
-	                        SwipeInputStartTime(0.0f), SwipeInputEndTime(0.0f)
+	FCurrentInputAction() : InputState(EInputState::Released), SwipeDirection(FVector::ZeroVector)
 	{
 	};
 
 	EInputState InputState;
 	FVector SwipeDirection;
-	float SwipeInputStartTime;
-	float SwipeInputEndTime;
-
-	FORCEINLINE float GetSwipeTime() const
-	{
-		return SwipeInputEndTime - SwipeInputStartTime;
-	}
-
-	FORCEINLINE float CalculateSwipeVelocityModifier() const
-	{
-		// TODO: Add project settings
-		// return FMath::Eval(SwipeDirection.Length() / GetSwipeTime());
-		return (SwipeDirection.Length() / GetSwipeTime()) * 100.0f;
-	}
 };
 
 UCLASS()
@@ -87,11 +72,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	FVector MaxVelocity;
 
-	void SwipeDown(const struct FInputActionValue& Value);
+	void TapJumpDown(const struct FInputActionValue& Value);
 
-	void SwipeUp(const FInputActionValue& Value);
+	void TapJumpUp(const FInputActionValue& Value);
+	
+	void TouchFingerX(const FInputActionValue& Value);
 
-	void TouchFinger(const FInputActionValue& Value);
+	void TouchFingerY(const FInputActionValue& Value);
+
+	void TouchFingerUp(const FInputActionValue& Value);
 	
 	FCurrentInputAction SwipeInputAction;
 

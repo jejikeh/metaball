@@ -82,7 +82,7 @@ void UMetaballSplashSeparateComponent::OnComponentHit(UPrimitiveComponent* HitCo
 		if (MetaballVelocity.Length() > MinimalSeparateVelocity && bIsCapableOfSeparating && SeparateCount > 0 || (bIsInMainMetaball && !bIsInitializeChild))
 		{
 			auto MetalballTransform = GetOwner()->GetActorTransform();
-			MetalballTransform.SetScale3D(MetalballTransform.GetScale3D() / 2);
+			MetalballTransform.SetScale3D(MetalballTransform.GetScale3D());
 
 			auto ChildSpawn = FMath::RandRange(0, MaximumSeparateCount - SeparateCount);
 			if (!bIsInitializeChild && bIsInMainMetaball)
